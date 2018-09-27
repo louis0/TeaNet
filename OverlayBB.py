@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 import PIL
-
 import os
+
 
 def get_files():
     fileList = []
-    for i in os.listdir():
-        if i[-4:] == (".XML" or ".xml"):
+    for i in os.listdir(os.getcwd()):
+        if i[-4:] == ".xml" or i[-4:] == ".XML":
             fileList.append(i)
 
     return fileList
@@ -20,6 +20,7 @@ def get_dataset(fileList):
 
     for i in fileList:
         a = get_coords(i)
+        a.insert(0,i[:-4])
         dataset.append(a)
 
     return dataset
@@ -34,35 +35,73 @@ def get_coords(f):
     root = tree.getroot()
 
     coordList = []
-    coordList.append(f[10:-4])
 
-    for i in root.findall('bndbox'):
-        xmin = i.find('xmin').text
-        xmax = i.find('xmin').text
-        ymin = i.find('ymin').text
-        ymax = i.find('ymax').text
+    xmin = 0
+    xmax = 0
+    ymin = 0
+    ymax = 0
 
-    coordList.append(xmin)
-    coordList.append(xmax)
-    coordList.append(ymin)
-    coordList.append(ymax)
+    for i in root.iter('bndbox'):
+        xmin = i.findtext('xmin')
+        xmax = i.findtext('xmax')
+        ymin = i.findtext('ymin')
+        ymax = i.findtext('ymax')
+
+    coordList.append(int(xmin))
+    coordList.append(int(xmax))
+    coordList.append(int(ymin))
+    coordList.append(int(ymax))
 
     return coordList
 
-def displayImage(list):
-    im = np.array(PIL.Image.open("n03797390_999.JPEG"))
 
+def display_image(list):
+    im = np.array(PIL.Image.open("n03797390_999.JPEG"))
 
     fig, ax = plt.subplots(1)
 
     ax.imshow(im)
-    rect = patches.Rectangle((list[1], list[3]), list[2]-list[1], list[4]-list[2], linewidth=10, edgecolor='y')
+    rect = patches.Rectangle((list[1], list[3]), list[2]-list[1], list[4]-list[2], linewidth=5, edgecolor='y', fill=False)
     ax.add_patch(rect)
     plt.gca().invert_yaxis()
     plt.show()
 
 
+def save_plots(ds):
+    for i in range(len(ds)):
+        print("processing "+ds[i][0])
+        try:
+            image = PIL.Image.open(ds[i][0]+".JPEG")
+        except:
+            continue
+
+
+
+        im = np.array(image)
+
+        imsize = image.getbbox()
+
+        dpi = 100
+        fig = plt.figure(figsize=(imsize[2]/dpi,imsize[3]/dpi), frameon=False)    #dpi=fig.dpi, figsize=(imsize[2]/image.info['dpi'],imsize[3]/image.info['dpi'])
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+
+        ax.set_axis_off()
+        fig.add_axes(ax)
+
+        ax.imshow(im)
+        rect = patches.Rectangle((ds[i][1], ds[i][3]), ds[i][2] - ds[i][1], ds[i][4] - ds[i][3], linewidth=2,
+                                 edgecolor='y', fill=False)
+
+        ax.add_patch(rect)
+        fig.savefig(os.getcwd()+"/mergedimg/"+ds[i][0]+".JPEG")#dpi=fig.dpi)
+        plt.close(fig)
+        plt.close()
+
+
+def run():
+    fileList = get_files()
+    ds = get_dataset(fileList)
+    save_plots(ds)
 
 if __name__ == '__main__':
-    print("a")
-    displayImage([0,10,100,10,100])
+    run()
